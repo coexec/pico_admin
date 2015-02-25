@@ -1,0 +1,6 @@
+.idea
+.DS_Store
+*iml
+pico_admin.MERGED.css
+pico_admin.MERGED.js
+atlassian-ide-plugin.xml
