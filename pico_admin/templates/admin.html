@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta charset="utf-8" />
+    <title>Pico Admin</title>
+    <link rel="stylesheet" href="{{ base_url }}/plugins/pico_admin/assets/css/pico_admin.MERGED.css" type="text/css" />
+    <meta name="robots" content="noindex, nofollow" />
+    {% if is_initial_login %}<meta http-equiv="refresh" content="1">{% endif %}
+</head>
+<body>
+{% if is_initial_login %}<div class="splashOuter">
+    <span class="splash">trans.login.welcome</span>
+</div>{% else %}
+	<div id="saving">trans.saving...</div>
+    <div id="sidebar">
+		<div class="controls" data-intro="trans.intro.controls" data-step="1" data-tooltipClass="ml110 wider">
+            <a href="#" class="new btn" title="trans.post.new"><div class="fa-iconplus"></div></a>
+            <a href="{{ base_url }}/admin/logout" class="logout btn" title="trans.logout"><div class="fa-iconquit"></div></a>
+            <a href="#" class="refresh btn" title="trans.post.refresh-tree"><div class="fa-iconrefresh"></div></a>
+            <a href="#" class="save btn" title="trans.post.save"><div class="fa-iconsave"></div></a>
+            <a href="#" class="show btn" title="trans.post.view.current"><div class="fa-iconeye"></div></a>
+            <a href="#" class="help btn float-right" title="trans.guided-tour"><div class="fa-iconquestion-circle"></div></a>
+        </div>
+		<ul class="nav" data-intro="trans.intro.navigation" data-step="2" data-position="right" data-tooltipClass="wider">
+		{% for page in pages %}
+            {% if page.parent_directories != false %}
+                {% for directory in page.parent_directories %}
+                    <li class="directory">
+                        <a href="#" data-url="{{ directory.data_url }}" class="post-directory">
+                            <div class="float-left fa-icon14 fa-icon14-folder" style="margin-left:{{ directory.level * 10 + 3 }}px;"></div>
+                            {{ directory.name|slice(1) }}
+                        </a>
+                        <a href="#" data-url="{{ directory.data_url }}" class="rename" title="trans.post.rename"><div class="fa-icon14-pencil"></div></a>
+                        <a href="#" data-url="{{ directory.data_url }}" class="delete" title="trans.post.delete"><div class="fa-icon14-trash-o"></div></a>
+                    </li>
+                {% endfor %}
+            {% endif %}
+			<li class="post">
+                <a href="#" data-url="{{ page.url }}" class="post {% if openpost == page.path_absolute %}open{% endif %}">
+                    <div class="float-left fa-icon14 fa-icon14-file" style="margin-left:{{ page.level * 10 }}px;"></div>
+					{{ page.path }}{% if page.path|length > 0 %}/{% endif %}{% if page.title %}{{ page.title }}{% else %}Untitled{% endif %}
+				</a>
+				<a href="{{ page.url }}" target="_blank" class="view" title="trans.post.view"><div class="fa-icon14-eye"></div></a>
+				<a href="#" data-url="{{ page.url }}" class="delete" title="trans.post.delete"><div class="fa-icon14-trash-o"></div></a>
+			</li>
+		{% endfor %}
+		</ul>
+	</div>
+	<div id="main">
+	    <div id="markdowneditor"><textarea id="markdown"></textarea></div>
+	</div>
+    <div id="assetsmanager" data-position="left" data-intro="trans.intro.assets" data-step="4" data-tooltipClass="wider">
+        <div id="assets"></div>
+    </div>
+    <div id="currentfile">
+        <div id="currentfile-name"><span class="warn">trans.warning.post.none-loaded</span></div>
+        <div id="currentfile-rename-icon" style="display: none; margin-left: 10px" title="trans.current-file.rename" class="rename fa-icon14-pencil"></div>
+    </div>
+    <script src="{{ base_url }}/plugins/pico_admin/assets/js/pico_admin.MERGED.js"></script>
+    <script>$(document).ready(function() {
+        PicoAdmin.init('{{ base_url }}', $(this).attr('data-url'), '{{ openpost }}', [
+                {name:'trans.rte.h1', key:'1', placeHolder:'Your title here...', closeWith:function(markItUp) { return PicoAdmin.Rte.miu.markdownTitle(markItUp, '=') } },
+                {name:'trans.rte.h2', key:'2', placeHolder:'Your title here...', closeWith:function(markItUp) { return PicoAdmin.Rte.miu.markdownTitle(markItUp, '-') } },
+                {name:'trans.rte.h3', key:'3', openWith:'### ', placeHolder:'Your title here...' },
+                {name:'trans.rte.h4', key:'4', openWith:'#### ', placeHolder:'Your title here...' },
+                {name:'trans.rte.h5', key:'5', openWith:'##### ', placeHolder:'Your title here...' },
+                {name:'trans.rte.h6', key:'6', openWith:'###### ', placeHolder:'Your title here...' },
+                {separator:'---------------' },
+                {name:'trans.rte.bold', key:'B', openWith:'**', closeWith:'**'},
+                {name:'trans.rte.italic', key:'I', openWith:'_', closeWith:'_'},
+                {name:'trans.rte.strikethrough', key:'S', openWith:'~~', closeWith:'~~'} ,
+                {separator:'---------------' },
+                {name:'trans.rte.quotation', openWith:'> ' },
+                {name:'trans.rte.list.bullets', openWith:'- ' },
+                {name:'trans.rte.list.numbered', openWith:function(markItUp) {
+                    return markItUp.line+'. ';
+                }},
+                {separator:'---------------' },
+                {name:'trans.rte.picture', key:'P', replaceWith:'![[![Alternative text]!]]([![Url:!:http://]!] "[![Title]!]")'},
+                {name:'trans.rte.link', key:'L', openWith:'[', closeWith:']([![Url:!:http://]!] "[![Title]!]")', placeHolder:'Your text to link here...' },
+                {name:'trans.rte.table', openWith:
+                '| Tables        | Are           | Cool  |\n'
+                +'| ------------- |:-------------:| -----:|\n'
+                +'| col 3 is      | right-aligned | $1600 |\n'
+                +'| col 2 is      | centered      |   $12 |\n'
+                +'| zebra stripes | are neat      |    $1 |\n' },
+                {separator:'---------------'},
+                {name:'trans.rte.comment', openWith:'[//]: # (', closeWith:')' },
+                {separator:'---------------'},
+                {separator:'---------------'},
+                {name:'trans.preview.inline', call:'preview', className:"preview"}
+            ],
+            {
+              nextLabel: 'trans.next &rarr;',
+              prevLabel: '&larr; trans.prev',
+              skipLabel: 'trans.skip',
+              doneLabel: 'trans.done'
+            },
+            'trans.intro.editor',
+            {
+                'confirmDeleteDirectory': 'trans.directory.delete.confirm',
+                'confirmDeleteFile'     : 'trans.file.delete.confirm',
+                'confirmDeletePost'     : 'trans.post.delete.confirm',
+                'directoryCreatePrompt' : 'trans.directory.create.prompt',
+                'promptNewPost'         : 'trans.post.new.prompt',
+                'promptRenameFile'      : 'trans.file.rename.prompt',
+                'promptRenameDirectory' : 'trans.directory.rename.prompt',
+                'saved'                 : 'trans.saved',
+                'saving'                : 'trans.saving'
+            }
+        );
+    });</script>
+{% endif %}
+</body>
+</html>

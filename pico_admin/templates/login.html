@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta charset="utf-8" />
+    <title>Pico Admin Login</title>
+    <link rel="stylesheet" href="{{ base_url }}/plugins/pico_admin/assets/css/pico_admin.MERGED.css" type="text/css" />
+    <meta name="robots" content="noindex, nofollow" />
+</head>
+<body>
+	<form id="login-form" method="post" action="">
+		<h1>Pico Admin Login</h1>
+		{% if login_error %}<p class="error">{{ login_error }}</p>{% endif %}
+		<label for="password">trans.login.password</label><br />
+		<input type="password" name="password" id="password" />
+		<input type="submit" value="Login" class="btn" />
+	</form>
+    </body>
+    <script language="JavaScript" type="text/javaScript">document.addEventListener("DOMContentLoaded", function() { document.getElementById("password").focus(); });</script>
+</html>

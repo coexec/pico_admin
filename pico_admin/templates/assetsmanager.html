@@ -1,0 +1,22 @@
+<div id="assetscontrols">
+    <a id="assetsreloadroot" title="trans.assets.root" class="upup btn" href="#" onclick="PicoAdmin.AssetsManager.init()"><div class="fa-iconupup"></div></a>
+    <a id="assetscreatedirectory" title="trans.assets.mkdir" class="directory btn" href="#"><div class="fa-iconfolder"></div></a>
+    <form id="uploadForm" onchange="this.submit();" enctype="multipart/form-data" method="POST" action="admin/upload">
+        <label for="upfile">Upload</label> <input type="file" id="upfile" name="upfile">
+        <input type="hidden" id="uppath" name="uppath" value="{{ path_assets_full }}" />
+    </form>
+</div>
+<ul id="assetslist">
+    <li>{{ path_assets_rel }}</li>
+    {% for asset in assets %}
+        <li{% if asset.is_directory %}{% else %} onmouseover="PicoAdmin.AssetsManager.showThumb('{{ asset.path_file_relative }}', '{{ asset.size }}', {{ asset.width }}, {{ asset.height }} )" onmouseout="PicoAdmin.AssetsManager.hideThumb()"{% endif %}>
+            <a href="#" class="assetfile" onclick="{% if asset.is_directory %}PicoAdmin.AssetsManager.init('{{ asset.path_file_full }}/'){% else %}PicoAdmin.AssetsManager.insertIntoPage('{{ asset.url_file }}'){% endif %}">
+                <div class="fa-icon14-{{ asset.icon }}"></div>{{ asset.filename }}
+            </a>
+            <div style="width:14px; z-index:10;" class="showHovered rename fa-icon14-pencil" title="trans.assets.rename" onclick="PicoAdmin.AssetsManager.rename('{{ asset.path_file_full }}', {{ asset.is_directory ? 'true' : 'false' }})"></div>
+            {% if asset.is_directory %}{% else %}<div style="width:14px;" class="showHovered download fa-icon14-download" title="trans.assets.download" onclick="PicoAdmin.AssetsManager.download('{{ asset.path_file_full }}')"></div>{% endif %}
+            <div style="width:14px; z-index:20;" class="showHovered delete fa-icon14-trash-o" title="trans.assets.delete" onclick="PicoAdmin.AssetsManager.deleteFile('{{ asset.path_file_full }}', {{ asset.is_directory ? 'true' : 'false' }})"></div>
+        </li>
+    {% endfor %}
+</ul>
+<div id="assetimagepreview"></div>
