@@ -32,7 +32,7 @@ class Pico_Admin {
 		$this->password 	= '';
 
         $this->is_preview = $this->endsWith($_SERVER['REQUEST_URI'], 'preview.php');
-        if( ! $this->is_preview ) {
+        if( ! $this->is_preview && session_status() === PHP_SESSION_NONE ) {
             session_start();
         }
 		
