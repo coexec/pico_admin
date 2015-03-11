@@ -131,8 +131,8 @@ class Pico_Admin {
 
 			} else if(!isset($_SESSION['pico_logged_in']) || !$_SESSION['pico_logged_in']){
 				if(isset($_POST['password'])){
-					if(sha1($_POST['password']) == $this->password
-                        && ! array_key_exists('pico_logged_in', $_SESSION) || $_SESSION['pico_logged_in'] !== true
+					if(    sha1($_POST['password']) == $this->password
+                        && ( ! array_key_exists('pico_logged_in', $_SESSION) || $_SESSION['pico_logged_in'] !== true)
                     ){
 						$_SESSION['pico_logged_in'] = true;
                         $twig_vars['is_initial_login'] = true;
