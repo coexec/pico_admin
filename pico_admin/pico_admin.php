@@ -50,10 +50,7 @@ class Pico_Admin {
             die('Fatal error: admin_config.php missing.');
         }
 
-        $this->basePath = str_replace(array($_SERVER['DOCUMENT_ROOT'], '/content'), '', CONTENT_DIR);
-        if( $this->basePath[0] === '/' ) {
-            $this->basePath = substr($this->basePath, 1);
-        }
+        $this->basePath = ltrim(str_replace(array($_SERVER['DOCUMENT_ROOT'], '/content'), '', CONTENT_DIR), '/');
 	}
 
 	/**
@@ -445,6 +442,7 @@ Placing: ' . $this->getNextPlacingNumber() . '
                     die( unlink(CONTENT_DIR . $pathFile . $fileMarkdown) );
                 }
             } else {
+                
                     // Delete asset file
                 if( is_file($file_url)) {
                     unlink($file_url);
@@ -458,6 +456,8 @@ Placing: ' . $this->getNextPlacingNumber() . '
             } else {
                 $pathDirectory = $file_url;
             }
+            $baseSuffix = Pico_Admin_Helper_Server::getUrlBaseSuffix();
+            $pathDirectory = str_replace($baseSuffix, $baseSuffix . '/content', $pathDirectory);
 
             $this->removeDirectoryRecursive($pathDirectory);
         }
@@ -623,11 +623,7 @@ Placing: ' . $this->getNextPlacingNumber() . '
 		$file_url   = isset($_POST['file']) && $_POST['file'] ? $_POST['file'] : '';
 
         $pathFile   = Pico_Admin_Helper_Files::getFilePath( Pico_Admin_Helper_Server::getCurrentUrl(true), $file_url );
-
-		$pathFile   = str_replace($_SERVER[ 'SERVER_NAME' ] . '/' . $this->basePath, '', $pathFile);
-        if( !empty($pathFile) && $pathFile[0] === '/') {
-            $pathFile = substr($pathFile, 1);
-        }
+		$pathFile   = ltrim( str_replace($_SERVER[ 'SERVER_NAME' ] . '/' . $this->basePath, '', $pathFile), '/');
 
         $file       = basename(strip_tags($file_url));
 
