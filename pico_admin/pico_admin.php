@@ -417,8 +417,13 @@ Placing: ' . $this->getNextPlacingNumber() . '
         if( is_dir($path) ) {
             $path .= '/index';
         }
-        if(! Pico_Admin_Helper_Strings::endsWith(CONTENT_EXT, $path)) {
+
+        if(! Pico_Admin_Helper_Strings::endsWith($path, CONTENT_EXT)) {
             $path .= CONTENT_EXT;
+        }
+
+        while( Pico_Admin_Helper_Strings::endsWith($path, CONTENT_EXT . CONTENT_EXT) ) {
+            $path = substr($path, 0, strlen($path) - 3);
         }
 
         return $path;
@@ -438,11 +443,11 @@ Placing: ' . $this->getNextPlacingNumber() . '
             if( strstr($file_url, '.') === false ) {
                     // Delete markdown file
                 $fileMarkdown = $file . CONTENT_EXT;
+
                 if( file_exists(CONTENT_DIR . $pathFile . $fileMarkdown) ) {
                     die( unlink(CONTENT_DIR . $pathFile . $fileMarkdown) );
                 }
             } else {
-                
                     // Delete asset file
                 if( is_file($file_url)) {
                     unlink($file_url);
@@ -640,6 +645,12 @@ Placing: ' . $this->getNextPlacingNumber() . '
 	private function do_render_assetsmanager()
 	{
         $this->checkLoggedIn();
+
+        if( ! is_dir(CONTENT_DIR . 'images') ) {
+            if(! mkdir(CONTENT_DIR . 'images') ) {
+                die('Error (check file permissions) - create directory failed at: ' . CONTENT_DIR . 'images');
+            }
+        }
 
         $pathAssets     = array_key_exists('file', $_POST) ? $_POST['file'] : CONTENT_DIR . 'images/';
         $pathAssetsRel  = str_replace(dirname(getcwd()) , '', $pathAssets);
