@@ -5,7 +5,7 @@
  *
  * @author Kay Stenschke
  * @link http://www.coexec.com
- * @version 2.1.0
+ * @version 2.0.1
  */
 class Pico_Admin {
     private $is_devMode = true;  // true: merge CSS files and JS files new on every request
@@ -240,6 +240,7 @@ class Pico_Admin {
         $pagesWithDirectories   = array();
         foreach($pages as $pageData) {
             $page  = str_replace($urlRoot, substr(CONTENT_DIR, 0, strlen(CONTENT_DIR)-1), $pageData['url']);
+
             $page .= ! is_file($page . CONTENT_EXT) ? 'index' . CONTENT_EXT : CONTENT_EXT;
 
             $pathRelFromContentRoot = str_replace(CONTENT_DIR, '', $page);    // path rel. to /content/ w/ filename
@@ -260,9 +261,10 @@ class Pico_Admin {
                 if(! Pico_Admin_Helper_Strings::endsWith($pageData['url'], '/')) {
                     $pageData['url'] .= '/';
                 }
-                $pageData['url'] .= 'index';
-            } else {
 
+                //if( !file_exists() ) {
+                //    $pageData[ 'url' ] .= 'index';
+                //}
             }
 
             $pageData['parent_directories'] = array();
@@ -380,13 +382,7 @@ Placing: ' . $this->getNextPlacingNumber() . '
             ? $file_url
             : (CONTENT_DIR . $pathFile . $file );
 
-        if( is_dir($path) ) {
-            $path .= '/index' . CONTENT_EXT;
-        } else {
-            if(! Pico_Admin_Helper_Strings::endsWith(CONTENT_EXT, $path)) {
-                $path .= CONTENT_EXT;
-            }
-        }
+        $path = $this->correctPagePath($path);
 
 		if(file_exists($path)) {
             $_SESSION['openpost'] = $path;
@@ -406,11 +402,30 @@ Placing: ' . $this->getNextPlacingNumber() . '
 
 		$content = isset($_POST['content']) && $_POST['content'] ? $_POST['content'] : '';
 		if(!$content) die('Error: Invalid content');
-		
-		$file .= CONTENT_EXT;
-		file_put_contents(CONTENT_DIR . $pathFile . $file, $content);
+
+        $file = $this->correctPagePath($file);
+
+        file_put_contents(CONTENT_DIR . $pathFile . $file, $content);
 		die($content);
 	}
+
+    /**
+     * Detect if the given path points to a content-directory, add "/index.md" than
+     * Ensure page path to end on the correct content extension (.md)
+     *
+     * @param   String  $path
+     * @return  String
+     */
+    private static function correctPagePath($path) {
+        if( is_dir($path) ) {
+            $path .= '/index';
+        }
+        if(! Pico_Admin_Helper_Strings::endsWith(CONTENT_EXT, $path)) {
+            $path .= CONTENT_EXT;
+        }
+
+        return $path;
+    }
 
     /**
      * Delete post (*.md), asset file (image) or directory (recursively)
@@ -608,11 +623,17 @@ Placing: ' . $this->getNextPlacingNumber() . '
 		$file_url   = isset($_POST['file']) && $_POST['file'] ? $_POST['file'] : '';
 
         $pathFile   = Pico_Admin_Helper_Files::getFilePath( Pico_Admin_Helper_Server::getCurrentUrl(true), $file_url );
-		$pathFile   = str_replace($_SERVER[ 'SERVER_NAME' ] . '/' . $this->basePath, '', $pathFile);    // extend here if not resolved correctly
+
+		$pathFile   = str_replace($_SERVER[ 'SERVER_NAME' ] . '/' . $this->basePath, '', $pathFile);
+        if( !empty($pathFile) && $pathFile[0] === '/') {
+            $pathFile = substr($pathFile, 1);
+        }
 
         $file       = basename(strip_tags($file_url));
 
-		if(!$file) die('Error: Invalid file');
+		if(!$file) {
+            die('Error - Invalid file: ' . $file);
+        }
 
         return array($file_url, $pathFile, $file);
     }
