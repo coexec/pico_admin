@@ -429,6 +429,8 @@ div#assetsmanager {
     }
     #assetslist {
         margin: 4px 0 0 6px;
+        height: 350px;
+        overflow: scroll;
     }
         #assetslist li {
             border-bottom: 1px solid #dce0e3;
@@ -457,18 +459,25 @@ div#assetsmanager {
 
         #assetslist .rename {
             right: 0;
-            padding-right: 30px;
+            padding-right: 50px;
             position: absolute;
         }
         #assetslist .download {
             right: 0;
-            padding-right: 50px;
+            padding-right: 70px;
             position: absolute;
         }
         #assetslist .delete {
             right: 0;
             padding-right: 10px;
             position: absolute;
+            z-index: 101;
+        }
+        #assetslist .meta {
+            right: 0;
+            padding-right: 30px;
+            position: absolute;
+            z-index: 100;
         }
         #assetimagepreview {
             margin: 8px 0 0 8px;
@@ -512,7 +521,7 @@ div#assetsmanager {
 .fa-iconquit, .fa-iconquote-left, .fa-iconrefresh, .fa-iconsave, .fa-iconsign-out,
 .fa-icontable, .fa-icontrash-o, .fa-iconunderline, .fa-iconupload, .fa-iconupup,
 .fa-icon14-download, .fa-icon14-eye, .fa-icon14-folder, .fa-icon14-insert, .fa-icon14-pencil,
-.fa-icon14-trash-o, .fa-icon14-upload, .fa-icon14-file, .fa-icon14-picture-o {
+.fa-icon14-trash-o, .fa-icon14-upload, .fa-icon14-file, .fa-icon14-picture-o, .fa-icon14-bubble {
     display: inline-block; 
     background: url('../images/fa-icons.png') no-repeat;
     overflow: hidden; 
@@ -572,6 +581,7 @@ div#assetsmanager {
 .fa-icon14-upload { background-position: -20px -1724px; }
 .fa-icon14-file { background-position: -20px -1756px; }
 .fa-icon14-picture-o { background-position: -20px -1798px; }
+.fa-icon14-bubble { background-position: -20px -1621px; }
 
 /* jQuery UI styles
 /* -------------------------- */

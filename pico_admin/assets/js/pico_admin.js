@@ -367,8 +367,10 @@ PicoAdmin = {
          * @param   {Number}    size
          * @param   {Number}    width
          * @param   {Number}    height
+         * @param   {String}    title
+         * @param   {String}    description
          */
-        showThumb: function(pathImage, size, width, height) {
+        showThumb: function(pathImage, size, width, height, title, description) {
             var offsetFilename = pathImage.lastIndexOf("/");
             var path = pathImage.substr(0, offsetFilename);
             var filename = pathImage.substr(offsetFilename + 1);
@@ -379,7 +381,12 @@ PicoAdmin = {
                  width: 200
             }).add($('<div></div>').attr({
                   id: "imageassetpreviewinfos"
-            }).append(width + ' x ' + height + ' px / ' + size)));
+            }).append(
+                  width + ' x '
+                + height + ' px / '
+                + size
+                + '<br />' + PicoAdmin.labels.title + ': ' + title
+                + '<br />' + PicoAdmin.labels.description + ': ' + description)));
         },
 
         hideThumb: function() {
@@ -415,6 +422,32 @@ PicoAdmin = {
                     // Reload assets manager
                     PicoAdmin.AssetsManager.init( PicoAdmin.AssetsManager.fileUrl );
                 });
+            }
+        },
+
+        /**
+         * Edit meta attributes (title and description) of image
+         *
+         * @param   {String}    pathFileFull
+         * @param   {String}    titleOld
+         * @param   {String}    descriptionOld
+         */
+        editMeta: function(pathFileFull, titleOld, descriptionOld) {
+            var filename = pathFileFull.substr(pathFileFull.lastIndexOf("/") + 1);
+
+            var titleNew        = prompt( PicoAdmin.labels.promptMetaTitle, titleOld);
+            if( titleNew ) {
+                $.post('admin/metatitle', { file: pathFileFull, title: titleNew }, function(data) { });
+            }
+
+            var descriptionNew  = prompt( PicoAdmin.labels.promptMetaDescription, descriptionOld);
+            if( descriptionNew ) {
+                $.post('admin/metadescription', { file: pathFileFull, description: descriptionNew }, function(data) { });
+            }
+
+            if( titleNew || descriptionNew ) {
+                // Reload assets manager
+                PicoAdmin.AssetsManager.init( PicoAdmin.AssetsManager.fileUrl );
             }
         },
 

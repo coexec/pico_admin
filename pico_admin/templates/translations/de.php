@@ -12,9 +12,11 @@
         'assets.delete'             => 'Löschen',
         'assets.download'           => 'Herunterladen',
         'assets.mkdir'              => 'Neues Verzeichnis erstellen',
+        'assets.meta'               => 'Titel und Beschreibung editieren',
         'assets.rename'             => 'Umbenennen',
         'assets.root'               => 'Zurück zum Stammordner',
         'current-file.rename'       => 'Klicken um die Datei des geladenen Posts umzubenennen',
+        'description'               => 'Beschreibung',
         'directory.create.prompt'   => 'Verzeichnis erstellen:',
         'directory.delete.confirm'  => 'Wollen Sie das Verzeichnis: "<fileFolderName>" und alle enthaltenen Dateien wirklich löschen?',
         'directory.rename.prompt'   => 'Verzeichnis umbenennen in:',
@@ -29,6 +31,8 @@
         'login.password'            => 'Passwort',
         'login.welcome'             => 'Wilkommen zur Pico CMS Administration!',
         'logout'                    => 'Vom der Administration ausloggen',
+        'meta.description.prompt'   => 'Beschreibung:',
+        'meta.title.prompt'         => 'Titel:',
         'next'                      => 'Weiter',
         'post.delete.confirm'       => 'Wollen Sie wirklich den Post : "<postName>" (Dateiname: "<filename>") löschen?',
         'post.delete'               => 'Diesen Post löschen',
@@ -60,5 +64,6 @@
         'saved'                     => 'Gespeichert',
         'saving'                    => 'Speichern',
         'skip'                      => 'Abbruch',
-        'warning.post.none-loaded'  => 'Kein Post geladen',
+        'title'                     => 'Titel',
+        'warning.post.none-loaded'  => 'Kein Post geladen'
     );

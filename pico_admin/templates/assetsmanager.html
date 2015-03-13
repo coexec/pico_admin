@@ -9,13 +9,17 @@
 <ul id="assetslist">
     <li>{{ path_assets_rel }}</li>
     {% for asset in assets %}
-        <li{% if asset.is_directory %}{% else %} onmouseover="PicoAdmin.AssetsManager.showThumb('{{ asset.path_file_relative }}', '{{ asset.size }}', {{ asset.width }}, {{ asset.height }} )" onmouseout="PicoAdmin.AssetsManager.hideThumb()"{% endif %}>
+        <li{% if asset.is_directory %}{% else %} class="imagefile" onmouseover="PicoAdmin.AssetsManager.showThumb('{{ asset.path_file_relative }}', '{{ asset.size }}', {{ asset.width }}, {{ asset.height }}, '{{ assets_meta[asset.filename].title }}', '{{ assets_meta[asset.filename].description }}' )" onmouseout="PicoAdmin.AssetsManager.hideThumb()"{% endif %}>
             <a href="#" class="assetfile" onclick="{% if asset.is_directory %}PicoAdmin.AssetsManager.init('{{ asset.path_file_full }}/'){% else %}PicoAdmin.AssetsManager.insertIntoPage('{{ asset.url_file }}'){% endif %}">
                 <div class="fa-icon14-{{ asset.icon }}"></div>{{ asset.filename }}
             </a>
             <div style="width:14px; z-index:10;" class="showHovered rename fa-icon14-pencil" title="trans.assets.rename" onclick="PicoAdmin.AssetsManager.rename('{{ asset.path_file_full }}', {{ asset.is_directory ? 'true' : 'false' }})"></div>
-            {% if asset.is_directory %}{% else %}<div style="width:14px;" class="showHovered download fa-icon14-download" title="trans.assets.download" onclick="PicoAdmin.AssetsManager.download('{{ asset.path_file_full }}')"></div>{% endif %}
-            <div style="width:14px; z-index:20;" class="showHovered delete fa-icon14-trash-o" title="trans.assets.delete" onclick="PicoAdmin.AssetsManager.deleteFile('{{ asset.path_file_full }}', {{ asset.is_directory ? 'true' : 'false' }})"></div>
+            {% if asset.is_directory %}{% else %}
+                <div style="width:14px;" class="showHovered download fa-icon14-download" title="trans.assets.download" onclick="PicoAdmin.AssetsManager.download('{{ asset.path_file_full }}')"></div>
+                <div style="width:14px;" class="showHovered meta fa-icon14-bubble" title="trans.assets.meta" onclick="PicoAdmin.AssetsManager.editMeta('{{ asset.path_file_full }}', '{{ assets_meta[asset.filename].title }}', '{{ assets_meta[asset.filename].description }}')"></div>
+            {% endif %}
+            <div style="width:14px; z-index:120;" class="showHovered delete fa-icon14-trash-o" title="trans.assets.delete" onclick="PicoAdmin.AssetsManager.deleteFile('{{ asset.path_file_full }}', {{ asset.is_directory ? 'true' : 'false' }})"></div>
+
         </li>
     {% endfor %}
 </ul>

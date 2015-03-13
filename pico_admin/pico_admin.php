@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Pico Admin plugin 2.0 for Pico CMS
+ * Pico Admin plugin 2.0.1 for Pico CMS
  *
  * @author Kay Stenschke
  * @link http://www.coexec.com
- * @version 2.0.0
+ * @version 2.1.0
  */
 class Pico_Admin {
     private $is_devMode = true;  // true: merge CSS files and JS files new on every request
@@ -26,13 +26,18 @@ class Pico_Admin {
 	 */
 	public function __construct()
 	{
-		$this->is_admin		= false;
-		$this->is_logout 	= false;
-		$this->plugin_path 	= dirname(__FILE__);
+        $this->plugin_path 	= dirname(__FILE__);
+
+        require_once($this->plugin_path . '/lib/helper_strings.php');
+        require_once($this->plugin_path . '/lib/helper_server.php');
+        require_once($this->plugin_path . '/lib/helper_files.php');
+
+        $this->is_admin		= false;
+        $this->is_logout 	= false;
 		$this->password 	= '';
 
-        $this->is_preview = $this->endsWith($_SERVER['REQUEST_URI'], 'preview.php');
-        if( ! $this->is_preview && session_status() === PHP_SESSION_NONE ) {
+        $this->is_preview = Pico_Admin_Helper_Strings::endsWith($_SERVER['REQUEST_URI'], 'preview.php');
+        if( ! $this->is_preview && session_id() == '' ) {
             session_start();
         }
 		
@@ -46,7 +51,9 @@ class Pico_Admin {
         }
 
         $this->basePath = str_replace(array($_SERVER['DOCUMENT_ROOT'], '/content'), '', CONTENT_DIR);
-        if( $this->basePath[0] === '/' ) $this->basePath = substr($this->basePath, 1);
+        if( $this->basePath[0] === '/' ) {
+            $this->basePath = substr($this->basePath, 1);
+        }
 	}
 
 	/**
@@ -95,6 +102,13 @@ class Pico_Admin {
                 $this->do_upload();
                 break;
 
+            case 'admin/metatitle':
+                $this->do_metatitle();
+                break;
+            case 'admin/metadescription':
+                $this->do_metadescription();
+                break;
+
             case 'admin/mkdir':
                 $this->do_mkdir();
                 break;
@@ -129,13 +143,13 @@ class Pico_Admin {
 				$twig_vars['login_error'] = 'No password set for the Pico Editor.';
 				$template = 'login';
 
-			} else if(!isset($_SESSION['pico_logged_in']) || !$_SESSION['pico_logged_in']){
+			} elseif(!isset($_SESSION['pico_logged_in']) || !$_SESSION['pico_logged_in']) {
 				if(isset($_POST['password'])){
 					if(    sha1($_POST['password']) == $this->password
                         && ( ! array_key_exists('pico_logged_in', $_SESSION) || $_SESSION['pico_logged_in'] !== true)
                     ){
-						$_SESSION['pico_logged_in'] = true;
-                        $twig_vars['is_initial_login'] = true;
+						$_SESSION['pico_logged_in']     = true;
+                        $twig_vars['is_initial_login']  = true;
 					} else {
 						$twig_vars['login_error'] = 'Invalid password.';
                         $template = 'login';
@@ -151,7 +165,7 @@ class Pico_Admin {
             $this->mergeCssFiles();
             $this->mergeJsFiles();
 
-			echo $this->translate($twig_editor->render('templates/' . $template . '.html', $twig_vars)); // Render admin.html or login.html
+			echo Pico_Admin_Helper_Strings::translate($twig_editor->render('templates/' . $template . '.html', $twig_vars)); // Render admin.html or login.html
 			exit; // Don't continue to render template
 		}
 	}
@@ -203,72 +217,63 @@ class Pico_Admin {
     }
 
     /**
-     * Detect client locale and translate (if resp. language is available, otherwise fallback to english)
-     *
-     * @param   String  $html
-     * @return  String
-     */
-    public static function translate($html) {
-        $locale = Locale::acceptFromHttp($_SERVER[ 'HTTP_ACCEPT_LANGUAGE' ]);
-        $localeKey = substr($locale, 0, 2);
-
-        $translationFile = dirname(__FILE__) .'/templates/translations/' . $localeKey . '.php';
-        if( ! file_exists($translationFile)) {
-            $translationFile = dirname(__FILE__) .'/templates/translations/en.php';
-        }
-        include($translationFile); // defines $translations as associative array of translation keys and labels
-        foreach($translations as $key => $label) {
-            $html = str_replace('trans.' . $key, $label, $html);
-        }
-
-        return $html;
-    }
-
-    /**
      * Extend the "pages" array with more data
      *
      * @param   array   $pages
      * @return  array
      */
     private function extendPageTree(array $pages){
-        $pagesWithDirectories   = array();
-        $listedPaths            = array();
-        $urlRoot                = $this->getUrlRoot();
+        $pages = $this->add404ToPageTree($pages);
 
-        if( file_exists(CONTENT_DIR . '404.md')) {
-                // Make '404.md' editable by including it (topmost) in the page tree
-            $page404    = CONTENT_DIR . '404.md';
-            $pages = array_merge( array(array(
-                'title'     => '404',
-                'url'       => str_replace(CONTENT_EXT, '', str_replace('index'. CONTENT_EXT, '', str_replace(CONTENT_DIR, $this->getUrlRoot() . '/', $page404))),
-                'content'   => file_get_contents($page404)
-            )), $pages);
-        }
+        $protocol = Pico_Admin_Helper_Server::getProtocol();
+        $basePath = Pico_Admin_Helper_Server::getCurrentUrl(true);
+        $urlRoot  = Pico_Admin_Helper_Server::getUrlRoot($this->basePath);
+
+            // List paths NOT to be displayed in the tree up-front
+        $listedPaths            = array(
+            '/', '/' . $protocol . '://', '/' . $protocol . ':/',
+            '/' . $protocol . '://' . $_SERVER['SERVER_NAME'] . '/',
+            '/' . $basePath, '/' . $basePath . '/', $basePath . '/'
+        );
 
         // Add parent paths for rendering directories in the tree, add more path variations per page
+        $pagesWithDirectories   = array();
         foreach($pages as $pageData) {
-            $page     = str_replace($this->getUrlRoot(), substr(CONTENT_DIR, 0, strlen(CONTENT_DIR)-1), $pageData['url']);
+            $page  = str_replace($urlRoot, substr(CONTENT_DIR, 0, strlen(CONTENT_DIR)-1), $pageData['url']);
             $page .= ! is_file($page . CONTENT_EXT) ? 'index' . CONTENT_EXT : CONTENT_EXT;
 
             $pathRelFromContentRoot = str_replace(CONTENT_DIR, '', $page);    // path rel. to /content/ w/ filename
 
-            $pageData['path']           = substr($pathRelFromContentRoot, 0, strrpos($pathRelFromContentRoot, '/') ); // path rel. to /content/ w/o current md file
+            $pathWithoutMdFile  = substr($pathRelFromContentRoot, 0, strrpos($pathRelFromContentRoot, '/'));
+            $pageData['path']   = str_replace(  // path rel. to /content/ w/o current md file
+                array($basePath . '/', $basePath),
+                '',
+                $pathWithoutMdFile
+            );
+
             $pageData['path_full']      = $pathRelFromContentRoot;    // path rel. to /content/ with .md file
             $pageData['path_absolute']  = $page;
-            $pageData['level']          = substr_count($page, '/') - 6;
+            $pageData['level']          = substr_count($page, '/') - 4;
 
-            if( $this->endsWith($page, 'index.md') ) {
+            if( Pico_Admin_Helper_Strings::endsWith($page, 'index.md') ) {
+                // is index page of root or a subdirectory
+                if(! Pico_Admin_Helper_Strings::endsWith($pageData['url'], '/')) {
+                    $pageData['url'] .= '/';
+                }
                 $pageData['url'] .= 'index';
+            } else {
+
             }
 
             $pageData['parent_directories'] = array();
             if(!empty($pageData['path'])) {
+                // Add parent directories
                 $directoriesAbove = explode('/', $pageData['path']);
 
                 $currentParentDirectory = '/';
                 foreach($directoriesAbove as $parentDirectory) {
                     $currentParentDirectory .= $parentDirectory . '/';
-                    if( ! in_array($currentParentDirectory, $listedPaths) ) {
+                    if( ! in_array($currentParentDirectory, $listedPaths, false) ) {
                         $pageData['parent_directories'][] = array(
                             'name'      => $currentParentDirectory,
                             'level'     => substr_count($currentParentDirectory, '/') - 1,
@@ -278,6 +283,7 @@ class Pico_Admin {
                         $listedPaths[] = $currentParentDirectory;
                     }
                 }
+
             }
             if( empty($pageData['parent_directories']) ) {
                 $pageData['parent_directories'] = false;
@@ -286,20 +292,6 @@ class Pico_Admin {
         }
 
         return $pagesWithDirectories;
-    }
-
-    /**
-     * @return  string
-     */
-    private function getUrlRoot() {
-        return
-            'http' . ( array_key_exists('HTTPS', $_SERVER) && $_SERVER[ 'HTTPS' ] == 'on' ? 's' : '' )
-          . '://' . $_SERVER[ 'SERVER_NAME' ]
-          . ( $_SERVER[ 'SERVER_PORT' ] != '80' ? ":" . $_SERVER[ 'SERVER_PORT' ] : '' )
-          . '/'
-          .  ($this->endsWith($this->basePath, '/') ? substr($this->basePath, 0, strlen($this->basePath) - 1) : $this->basePath )
-        ;
-
     }
 
 	/**
@@ -315,11 +307,11 @@ class Pico_Admin {
             $folders= explode('/', $title);
             $title = array_pop($folders);
         }
- 		$file = $this->slugify(basename($title));
+ 		$file = Pico_Admin_Helper_Strings::slugify(basename($title));
 		if(!$file) die(json_encode(array('error' => 'Error: Invalid file name')));
 		
 		$error = '';
-        if( ! $this->endsWith($file, CONTENT_EXT)) {
+        if( ! Pico_Admin_Helper_Strings::endsWith($file, CONTENT_EXT)) {
             $file .= CONTENT_EXT;
         }
         $content = '';
@@ -384,13 +376,21 @@ Placing: ' . $this->getNextPlacingNumber() . '
         $this->checkLoggedIn();
         list($file_url, $pathFile, $file) = $this->getFileParamsFromPost();
 
-        $path = $this->endsWith($file_url, CONTENT_EXT)
+        $path = Pico_Admin_Helper_Strings::endsWith($file_url, CONTENT_EXT)
             ? $file_url
-            : (CONTENT_DIR . $pathFile . $file . CONTENT_EXT);
+            : (CONTENT_DIR . $pathFile . $file );
+
+        if( is_dir($path) ) {
+            $path .= '/index' . CONTENT_EXT;
+        } else {
+            if(! Pico_Admin_Helper_Strings::endsWith(CONTENT_EXT, $path)) {
+                $path .= CONTENT_EXT;
+            }
+        }
 
 		if(file_exists($path)) {
             $_SESSION['openpost'] = $path;
-            die(file_get_contents($path));
+            die( file_get_contents( $path ) );
         }
 
         die('Error: Invalid file - ' . $path );
@@ -496,12 +496,7 @@ Placing: ' . $this->getNextPlacingNumber() . '
         $this->checkLoggedIn();
 
         $pathFile = urldecode($_GET['file']);
-        $filename = substr($pathFile, strrpos($pathFile, '/') + 1 );
-
-        header('Content-Type: text/xml');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        die( file_get_contents($pathFile) );
+        Pico_Admin_Helper_Files::download($pathFile, substr($pathFile, strrpos($pathFile, '/') + 1 ));
 	}
 
 	/**
@@ -510,16 +505,29 @@ Placing: ' . $this->getNextPlacingNumber() . '
 	private function do_rename()
 	{
         $this->checkLoggedIn();
-        if( $_POST['file'] === $_POST['renameTo']) die();
+
+        if( $_POST['file'] === $_POST['renameTo']) {
+            // don't rename a file to its identical name
+            die();
+        }
 
         $path = urldecode($_POST['file']);
         $pathContainsContentDir = strstr($path, CONTENT_DIR) !== false;
-        if( $path[0] == '/' ) $path = substr($path, 1);
+        if( $path[0] === '/' ) {
+            $path = substr($path, 1);
+        }
         $len = strlen($path);
-        if( $path[$len - 1] == '/' ) $path = substr($path, 0, $len - 1);
+        if( $path[$len - 1] === '/' ) {
+            $path = substr($path, 0, $len - 1);
+        }
+
+        $filename = basename($path);
 
         $pathAbsoluteOld = $pathContainsContentDir ? '/' . $path : CONTENT_DIR . $path;
+        $filenameOld = basename($pathAbsoluteOld);
+
         $pathAbsoluteNew = substr($pathAbsoluteOld, 0, strrpos($pathAbsoluteOld, '/') + 1) . urldecode($_POST['renameTo']);
+        $filenameNew = basename($pathAbsoluteNew);
 
         if( $pathAbsoluteNew != $pathAbsoluteOld ) {
             if( ! is_dir($pathAbsoluteOld) ) {
@@ -529,33 +537,68 @@ Placing: ' . $this->getNextPlacingNumber() . '
                 }
             }
             rename($pathAbsoluteOld, $pathAbsoluteNew);
+
+            $pathAbsoluteThumbOld = str_replace($filename, 'thumbs/' . $filename, $pathAbsoluteOld);
+            $pathAbsoluteThumbNew = str_replace($filename, 'thumbs/' . $filename, $pathAbsoluteNew);
+            rename($pathAbsoluteThumbOld, $pathAbsoluteThumbNew);
         }
+
+        // Update meta.php
+        $path     = str_replace($filename, '', $pathAbsoluteOld);
+        if( file_exists($path . 'meta.php') ) {
+            $meta = array();
+            include($path . 'meta.php');
+
+            if( array_key_exists($filenameOld, $meta)) {
+                $attributes = $meta[$filenameOld];
+                unset($meta[$filenameOld]);
+                $meta[$filenameNew] = $attributes;
+                file_put_contents($path . 'meta.php', '<?php $meta = ' . var_export($meta, true) . ';');
+            }
+        }
+
         die();
 	}
 
 	/**
-	 * @param   string          $text
-	 * @return  mixed|string
+	 * Store file's meta title
 	 */
-	private function slugify($text)
-	{ 
-		// replace non letter or digits by -
-		$text = preg_replace('~[^\\pL\d]+~u', '-', $text);
-		
-		// trim
-		$text = trim($text, '-');
-		
-		// transliterate
-		$text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
-		
-		// lowercase
-		$text = strtolower($text);
-		
-		// remove unwanted characters
-		$text = preg_replace('~[^-\w]+~', '', $text);
-		
-		return empty($text) ? 'n-a' : $text;
+	private function do_metatitle()
+	{
+        $this->do_meta_attribute('title', 'title');
 	}
+
+	/**
+	 * Store file's meta title
+	 */
+	private function do_metadescription()
+	{
+        $this->do_meta_attribute('description', 'description');
+	}
+
+    /**
+     * Stores a meta value from (read from the given post-var) into the given meta key
+     *
+     * @param   String  $postVarKey
+     * @param   String  $metaKey
+     */
+    private function do_meta_attribute($postVarKey = 'title', $metaKey = 'title')
+    {
+        $this->checkLoggedIn();
+
+        $metaValue = urldecode($_POST[$postVarKey]);
+
+        $pathFile = urldecode($_POST['file']);
+        $filename = substr($pathFile, strrpos($pathFile, '/') + 1 );
+        $path     = str_replace($filename, '', $pathFile);
+
+        /** @var array  $meta */
+        include($path . 'meta.php');
+
+        $meta[$filename][$metaKey]    = $metaValue;
+
+        file_put_contents($path . 'meta.php', '<?php $meta = ' . var_export($meta, true) . ';');
+    }
 
     /**
      * @return array
@@ -563,25 +606,15 @@ Placing: ' . $this->getNextPlacingNumber() . '
     private function getFileParamsFromPost()
     {
 		$file_url   = isset($_POST['file']) && $_POST['file'] ? $_POST['file'] : '';
-        $pathFile   = $this->getFilePath($file_url);
-		$file       = basename(strip_tags($file_url));
+
+        $pathFile   = Pico_Admin_Helper_Files::getFilePath( Pico_Admin_Helper_Server::getCurrentUrl(true), $file_url );
+		$pathFile   = str_replace($_SERVER[ 'SERVER_NAME' ] . '/' . $this->basePath, '', $pathFile);    // extend here if not resolved correctly
+
+        $file       = basename(strip_tags($file_url));
 
 		if(!$file) die('Error: Invalid file');
 
         return array($file_url, $pathFile, $file);
-    }
-
-    /**
-     * @param   string  $file_url
-     * @return  mixed|string
-     */
-    private function getFilePath($file_url)
-    {
-        $pathFile = str_replace(array( 'http://', 'https://', $_SERVER[ 'SERVER_NAME' ] . ( $_SERVER[ 'SERVER_PORT' ] != '80' ? ":" . $_SERVER[ 'SERVER_PORT' ] : '' ) ), '', dirname(strip_tags($file_url)));
-        $pathFile = substr($pathFile, strlen($this->basePath) + 1);
-        if( !empty( $pathFile ) ) $pathFile .= '/';
-
-        return $pathFile;
     }
 
     /**
@@ -594,7 +627,14 @@ Placing: ' . $this->getNextPlacingNumber() . '
         $pathAssets     = array_key_exists('file', $_POST) ? $_POST['file'] : CONTENT_DIR . 'images/';
         $pathAssetsRel  = str_replace(dirname(getcwd()) , '', $pathAssets);
 
+        /** @var  array $meta */
         $assets = $this->scanAssets($pathAssets);
+        if( file_exists($pathAssets . '/meta.php')) {
+            include($pathAssets . '/meta.php');
+        } else {
+            // there are no images in the path, and thus no 'meta.php' file
+            $meta = array();
+        }
 
         $loader = new Twig_Loader_Filesystem($this->plugin_path);
         $twig_editor_assets = new Twig_Environment($loader);
@@ -603,15 +643,17 @@ Placing: ' . $this->getNextPlacingNumber() . '
             'can_browse_up'     => strlen($pathAssetsRel) < 7 || ! substr($pathAssetsRel, -7) === 'images/',  // ends w/ "images/"?
             'path_assets_full'  => $pathAssets,
             'path_assets_rel'   => $pathAssetsRel,
-            'assets'            => $assets
+            'assets'            => $assets,
+            'assets_meta'       => $meta
         );
 
-		die($this->translate($twig_editor_assets->render('templates/assetsmanager.html', $twig_vars)));
+		die(Pico_Admin_Helper_Strings::translate($twig_editor_assets->render('templates/assetsmanager.html', $twig_vars)));
 	}
 
     /**
      * Get listing of files and directories (excluding thumbnail-directories) in given path
      * Create thumbnails for all images (not having thumbs yet) for previewing
+     * Create meta.php file for title and descriptions of images
      *
      * @param   string  $path
      * @return  array
@@ -629,9 +671,11 @@ Placing: ' . $this->getNextPlacingNumber() . '
         $assets       = array();
         $files        = scandir($path);
         $fileInfoMime = finfo_open(FILEINFO_MIME_TYPE);
+        $metaCode     = "<?php\n" . '   $meta = array(';
+        $imagesCount  = 0;
 
         foreach($files as $filename) {
-            if( strlen($filename) > 2 && $filename != '.DS_Store' ) {
+            if( strlen($filename) > 2 && $filename !== '.DS_Store' && $filename !== 'meta.php' ) {
                 $filePathFull = $path . $filename;
                 $isDirectory    = is_dir($filePathFull);
 
@@ -639,13 +683,13 @@ Placing: ' . $this->getNextPlacingNumber() . '
                     $mimeType       = $isDirectory ? 'directory' : finfo_file($fileInfoMime, $filePathFull);
 
                     $assets[ ($isDirectory ? '0' : '' /* list directories topmost */) . $filename ] = array(
-                        'is_root'           => $this->endsWith($filePathFull, 'content/images') ? 1 : 0,
+                        'is_root'           => Pico_Admin_Helper_Strings::endsWith($filePathFull, 'content/images') ? 1 : 0,
                         'is_directory'      => $isDirectory,
-                        'size'              => $isDirectory ? '' : $this->formatBytes(filesize($filePathFull)),
+                        'size'              => $isDirectory ? '' : Pico_Admin_Helper_Strings::formatBytes(filesize($filePathFull)),
                         'filename'          => $filename,
                         'path_file_full'    => $filePathFull,
                         'path_file_relative'=> str_replace(getcwd(), '', $filePathFull),
-                        'url_file'          => $this->getUrlRoot() . '/' . str_replace(ROOT_DIR, '', $filePathFull),
+                        'url_file'          => Pico_Admin_Helper_Server::getUrlRoot($this->basePath) . '/' . str_replace(ROOT_DIR, '', $filePathFull),
                         'path'              => $path,
                         'mime'              => $mimeType,
                         'icon'              => $isDirectory ? 'folder' : (strpos($mimeType, 'image') !== false ? 'picture-o' : 'file')
@@ -661,12 +705,29 @@ Placing: ' . $this->getNextPlacingNumber() . '
                         if( ! file_exists($pathThumbFile) ) {
                             $this->generateThumb($filePathFull, $pathThumbFile);
                         }
+
+                        $metaCode     .= ($imagesCount > 0 ? ',' : '') .
+                            "\n" .
+                            "       '$filename' => array(\n" .
+                            "           'title'         => '',\n" .
+                            "           'description'   => ''\n" .
+                            '       )';
+
+                        $imagesCount++;
                     }
                 }
             }
         }
+        $metaCode     .= ');';
 
         ksort($assets);
+
+        // Create (if missing) meta.php file w/ title and description per image
+        if( $imagesCount > 0 && ! file_exists($path . '/meta.php') ) {
+            $handle = fopen($path . '/meta.php', 'w');
+            fwrite($handle, $metaCode);
+            fclose($handle);
+        }
 
         return $assets;
     }
@@ -690,15 +751,29 @@ Placing: ' . $this->getNextPlacingNumber() . '
 
         $image_p= imagecreatetruecolor($width, $height);
         $filenameLower = strtolower($pathImage);
-        $image  = $this->endsWith($filenameLower, 'png') ? imagecreatefrompng($pathImage) : imagecreatefromjpeg($pathImage);
 
-        if( $image_p && $image ) {
+        $image          = null;
+        $fileExtension  = Pico_Admin_Helper_Files::getFileExtension($filenameLower);
+        switch($fileExtension) {
+            case 'png':
+                $image = imagecreatefrompng($pathImage);
+                break;
+
+            case 'jpg':case 'jpeg':
+                $image = imagecreatefromjpeg($pathImage);
+                break;
+
+            default:
+                $image = imagecreatefromgif($pathImage);
+        }
+
+        if( $image_p && $image != null ) {
             imagecopyresampled($image_p, $image, 0, 0, 0, 0, $width, $height, $width_orig, $height_orig);
 
             // Output in same format (gif, jpg, gif)
-            if( $this->endsWith($filenameLower, 'gif') ) {
+            if( $fileExtension === 'gif' ) {
                 imagegif($image_p, $pathThumb);
-            } else if( $this->endsWith($filenameLower, 'jpg') || $this->endsWith($filenameLower, 'jpeg') ) {
+            } elseif( $fileExtension === 'jpg' || $fileExtension === 'jpeg' ) {
                 imagejpeg($image_p, $pathThumb, 92);
             } else {
                 imagepng($image_p, $pathThumb);
@@ -707,39 +782,15 @@ Placing: ' . $this->getNextPlacingNumber() . '
     }
 
     /**
-     * @param   string      $haystack
-     * @param   string      $needle
-     * @return  boolean     Given string ends w/ given needle?
-     */
-    private function endsWith($haystack, $needle)
-    {
-        return $needle === '' || substr($haystack, -strlen($needle)) === $needle;
-    }
-
-    /**
-     * @param   int     $bytes
-     * @param   int     $precision
-     * @return  string
-     */
-    private function formatBytes($bytes, $precision = 2)
-    {
-        $units = array('B', 'KB', 'MB', 'GB', 'TB');
-        $bytes = max($bytes, 0);
-        $pow = floor(( $bytes ? log($bytes) : 0 ) / log(1024));
-        $pow = min($pow, count($units) - 1);
-
-        $bytes /= pow(1024, $pow);
-
-        return round($bytes, $precision) . ' ' . $units[ $pow ];
-    }
-
-    /**
      * Ensure user is logged in, otherwise stop here.
      */
     private function checkLoggedIn()
     {
         if( !isset( $_SESSION[ 'pico_logged_in' ] ) || !$_SESSION[ 'pico_logged_in' ] ) {
-            die( json_encode(array( 'error' => 'Error: Unathorized' )) );
+            if( $this->is_preview ) {
+                die(json_encode(array('error' => 'Error: Unathorized')));
+            }
+            header('Location: admin');
         }
     }
 
@@ -756,6 +807,7 @@ Placing: ' . $this->getNextPlacingNumber() . '
             switch( $_FILES['upfile']['error'] ) {
                 case UPLOAD_ERR_OK:
                     break;
+
                 case UPLOAD_ERR_NO_FILE:
                     throw new RuntimeException('No file sent.');
                 case UPLOAD_ERR_INI_SIZE:
@@ -790,5 +842,25 @@ Placing: ' . $this->getNextPlacingNumber() . '
 
         header('Location: /' . $this->basePath . '/admin', true, 302);
         die();
+    }
+
+    /**
+     * @param array $pages
+     * @return array
+     */
+    private function add404ToPageTree(array $pages)
+    {
+        if( file_exists(CONTENT_DIR . '404.md') ) {
+            // Make '404.md' editable by including it (topmost) in the page tree
+            $page404 = CONTENT_DIR . '404.md';
+
+            return array_merge(array(
+               array(
+                   'title'  => '404',
+                   'url'    => str_replace(CONTENT_EXT, '', str_replace('index' . CONTENT_EXT, '', str_replace(CONTENT_DIR, Pico_Admin_Helper_Server::getUrlRoot($this->basePath) . '/', $page404))), 'content' => file_get_contents($page404))
+            ), $pages);
+        }
+
+        return $pages;
     }
 }

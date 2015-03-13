@@ -1,8 +1,15 @@
-Pico Admin Plugin
-=================
+Pico Admin Plugin by Kay Stenschke / www.coexec.com
+===================================================
 
-Version 2.0.0 by Kay Stenschke / www.coexec.com
------------------------------------------------
+Version 2.0.1
+-------------
+* Bugfix: File paths were not resolved correctly on some servers
+* Added meta attributes storage (title, description) and administration in a meta.php file, w/ an associative array, storing meta attributes for every image in folder
+* Made assets list scrollable
+* Extracted some helper methods into static helper classes
+
+Version 2.0.0
+-------------
 * Added a guided tour of the administration's user interface
 * Added simple translation handling and UI translations in english and german
 * Made UI panels resizable
@@ -11,7 +18,7 @@ Version 2.0.0 by Kay Stenschke / www.coexec.com
   * option to create directories
   * option to upload, download, rename and delete files and directories
   * automatic thumbs generation for images, thumb display on mouseover of files
-* Removed unsaved observer / autosaving
+* Removed unsaved observer / auto-saving
 * Replaced EpicEditor by markItUp (faster, easier extensible)
 * Added option to rename post files
 * Added post info: filename of currently loaded post, with option to rename the file

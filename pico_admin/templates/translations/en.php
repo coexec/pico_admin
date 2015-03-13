@@ -2,6 +2,10 @@
 /**
  * translation.en.php   English (default) translations for Pico Admin Plugin
  *
+ * To add a label:
+ * 1. add it here
+ * 2. define it in the inline javaScript inside admin.html
+ *
  * @note    Labels are parsed in the order as listed, therefor ensure having labels which add something to another,
  *          otherwise identical, label to be listed before that other label.
  *          Ex: 'label.something.more' must be listed before 'label.something' for both labels to be correctly translated.
@@ -12,9 +16,11 @@
         'assets.delete'             => 'Delete',
         'assets.download'           => 'Download',
         'assets.mkdir'              => 'Create new directory',
+        'assets.meta'               => 'Edit title and description',
         'assets.rename'             => 'Rename',
         'assets.root'               => 'Go back to root directory',
         'current-file.rename'       => 'Click to rename the file',
+        'description'               => 'Description',
         'directory.create.prompt'   => 'Create directory:',
         'directory.delete.confirm'  => 'Are you sure you want to delete the directory: "<fileFolderName>" and all contained files?',
         'directory.rename.prompt'   => 'Rename directory to:',
@@ -29,6 +35,8 @@
         'login.password'            => 'Password',
         'login.welcome'             => 'Welcome to Pico CMS administration!',
         'logout'                    => 'Logout from the Pico administration backend',
+        'meta.description.prompt'   => 'Description:',
+        'meta.title.prompt'         => 'Title:',
         'next'                      => 'Next',
         'post.delete.confirm'       => 'Are you sure you want to delete the post: "<postName>" (filename: "<filename>")?',
         'post.delete'               => 'Delete this post',
@@ -60,5 +68,6 @@
         'saved'                     => 'Saved',
         'saving'                    => 'Saving',
         'skip'                      => 'Skip',
-        'warning.post.none-loaded'  => 'No post loaded',
+        'title'                     => 'Title',
+        'warning.post.none-loaded'  => 'No post loaded'
     );
